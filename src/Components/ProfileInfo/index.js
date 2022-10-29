@@ -1,67 +1,78 @@
-import React, { useEffect, useState } from "react";
-import { getDoc, doc, setDoc, collection, onSnapshot, QuerySnapshot } from "firebase/firestore";
-import { db } from "../../configure/firebaseInitilize";
+import React,{useState,useEffect} from 'react';
 import { TextField, Grid, Box, Button } from "@mui/material";
-import { Navigate, useNavigate } from "react-router-dom";
+import {db} from "../../configure/firebaseInitilize";
+import {
+  setDoc,collection,getDoc,query,onSnapshot,doc,deleteDoc
+} from "firebase/firestore";
+import { getAuth, signOut } from "firebase/auth";
+import{useNavigate} from "react-router-dom";
 
-function ProfileInfo() {
-  const [USERData, setUSERData] = useState(null);
-  const [editState, setEditState] = useState(false);
-  let user = JSON.parse(localStorage.getItem("user"));
-  let userId = user.uid;
-  async function getProfile() {
-    try {
-      const docRef = collection(db,userId);
-      const docData = onSnapshot(docRef,(querySnapshot));
-      if (docData.exists()) {
-        console.log("Document data:", docData.data());
-        setUSERData({ ...docData.data() });
-      } else {
-        // doc.data() will be undefined in this case
-        console.log("No such document!");
+const ProfileInfo = () => {
+  const loginUser = JSON.parse(localStorage.getItem("user"))
+  const [editState,setEditState] =useState(false);
+  const[data,setData] = useState([]);
+  
+  const [candidateData,setCandidateData] =useState({
+    name:'',
+    email:loginUser.email,
+    phone:'',
+    education:"",
+    experience:'',
+    linkedIn:'',
+  });
+  const userId = loginUser.uid;
+  const collectionRef = collection(db,"personalData");
+  const editProfile = async()=>{
+    
+      const userRef =  doc(db, "personalData", userId);
+      const dataRef = await getDoc(userRef);
+      if(dataRef.exists()){
+        console.log(dataRef.data())
+        setCandidateData({...dataRef.data()})
+        setEditState(false);
+
       }
-    } catch (err) {
-      console.log(err);
-    }
+      else{
+        setEditState(true);
+      }
+
+    
   }
-
   useEffect(() => {
-    getProfile();
-  }, []);
+    editProfile();},[]);
 
-  const saveProfile = async (e) => {
-    if (editState) {
+  const saveProfile =async(e)=>{
+    if(editState){
+
       e.preventDefault();
-      try {
-        await setDoc(doc(db, "usersData", userId), {
-          ...USERData,
-        });
-        alert("Profile Updated");
-      } catch (e) {
-        alert("Error occored");
-        console.error("Error adding document: ", e);
-      }
+      const userRef = doc(collectionRef,userId);
+      await setDoc(userRef,candidateData);
+      setEditState(true);
     }
     setEditState(!editState);
-  };
-  const navigate = useNavigate();
-  const reRoute = () => {
-    navigate("/");
-  };
-  const logoutProfile = () => {
-    alert("Are you want to Logout?");
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    // localStorage.removeItem("real key");
 
-    reRoute();
-  };
+  }
+  const navigate = useNavigate();
+  const logoutProfile =()=>{
+    alert('Are you want to logout?')
+    const auth = getAuth();
+    signOut(auth).then(() => {
+      // const d = doc(collectionRef,userId)
+      // deleteDoc(d);
+  localStorage.removeItem('users')
+  navigate('/')
+  // Sign-out successful.
+}).catch((error) => {
+  // An error happened.
+  console.log(error)
+});
+  }
   return (
-    <div>
-          <Grid container spacing={8} justifyContent="center">
+    <div style={{backgroundImage: "linear-gradient(to right, #DECBA4, #3E5151)", minHeight:"100vh"}}>
+      <Grid container spacing={8} justifyContent="center">
             <Grid item xs={2} md={2}>
               <Button onClick={saveProfile}>
-                {editState || USERData ? "save" : "Edit"}
+                {editState ? "save" : "Edit"}
               </Button>
             </Grid>
             <Grid item xs={2} md={2}>
@@ -76,9 +87,9 @@ function ProfileInfo() {
               <TextField
                 disabled={!editState}
                 required
-                value={USERData.name}
+                value={candidateData.name}
                 onChange={(e) => {
-                  setUSERData((p) => {
+                  setCandidateData((p) => {
                     return { ...p, name: e.target.value };
                   });
                 }}
@@ -96,9 +107,9 @@ function ProfileInfo() {
                 disabled={!editState}
                 required
                 type="email"
-                value={USERData.email}
+                value={candidateData.email}
                 onChange={(e) => {
-                  setUSERData((p) => {
+                  setCandidateData((p) => {
                     return { ...p, email: e.target.value };
                   });
                 }}
@@ -118,9 +129,9 @@ function ProfileInfo() {
                 required
                 type="number"
                 inputProps={{ maxLength: 10 }}
-                value={USERData.phone}
+                value={candidateData.phone}
                 onChange={(e) => {
-                  setUSERData((p) => {
+                  setCandidateData((p) => {
                     return { ...p, phone: e.target.value };
                   });
                 }}
@@ -135,9 +146,9 @@ function ProfileInfo() {
               <label>Education</label>
               <TextField
                 disabled={!editState}
-                value={USERData.education}
+                value={candidateData.education}
                 onChange={(e) => {
-                  setUSERData((p) => {
+                  setCandidateData((p) => {
                     return { ...p, education: e.target.value };
                   });
                 }}
@@ -152,9 +163,9 @@ function ProfileInfo() {
               <label>Experience</label>
               <TextField
                 disabled={!editState}
-                value={USERData.experience}
+                value={candidateData.experience}
                 onChange={(e) => {
-                  setUSERData((p) => {
+                  setCandidateData((p) => {
                     return { ...p, experience: e.target.value };
                   });
                 }}
@@ -169,79 +180,12 @@ function ProfileInfo() {
               <label>linkedIn</label>
               <TextField
                 disabled={!editState}
-                value={USERData.socialMedia?.linkedIn}
+                value={candidateData.linkedIn}
                 onChange={(e) => {
-                  setUSERData((p) => {
+                  setCandidateData((p) => {
                     return {
                       ...p,
-                      socialMedia: {
-                        ...p.socialMedia,
-                        linkedIn: e.target.value,
-                      },
-                    };
-                  });
-                }}
-                size="small"
-                fullWidth
-                id="outlined-basic"
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <label>Twitter</label>
-              <TextField
-                disabled={!editState}
-                value={USERData.socialMedia?.twitter}
-                onChange={(e) => {
-                  setUSERData((p) => {
-                    return {
-                      ...p,
-                      socialMedia: {
-                        ...p.socialMedia,
-                        twitter: e.target.value,
-                      },
-                    };
-                  });
-                }}
-                size="small"
-                fullWidth
-                id="outlined-basic"
-                variant="outlined"
-              />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <label>Github</label>
-              <TextField
-                disabled={!editState}
-                value={USERData.socialMedia?.github}
-                onChange={(e) => {
-                  setUSERData((p) => {
-                    return {
-                      ...p,
-                      socialMedia: { ...p.socialMedia, github: e.target.value },
-                    };
-                  });
-                }}
-                size="small"
-                fullWidth
-                id="outlined-basic"
-                variant="outlined"
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <label>Instagram</label>
-              <TextField
-                disabled={!editState}
-                value={USERData.socialMedia?.instagram}
-                onChange={(e) => {
-                  setUSERData((p) => {
-                    return {
-                      ...p,
-                      socialMedia: {
-                        ...p.socialMedia,
-                        instagram: e.target.value,
-                      },
+                      linkedIn: e.target.value,
                     };
                   });
                 }}
@@ -252,64 +196,9 @@ function ProfileInfo() {
               />
             </Grid>
             
-
-            {/* <Grid item xs={12} md={6}>
-              <la>
-                Tags<span style={{ color: "red" }}>*</span>
-              </la>
-              <FormControl required sx={{ width: "100%" }}>
-                <InputLabel id="demo-multiple-checkbox-label">
-                  Select
-                </InputLabel>
-                <Select
-                  labelId="demo-multiple-checkbox-label"
-                  id="demo-multiple-checkbox"
-                  multiple
-                  value={USERData.skills}
-                  onChange={handleSkillsChange}
-                  input={<OutlinedInput label="Tag" />}
-                  renderValue={(selected) => selected.join(", ")}
-                  MenuProps={MenuProps}
-                >
-                  {skillsList.map((name) => (
-                    <MenuItem key={name} value={name}>
-                      <Checkbox
-                        checked={USERData.skills.indexOf(name) > -1}
-                      />
-                      <ListItemText primary={name} />
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <la>
-                interested Domains<span style={{ color: "red" }}>*</span>
-              </la>
-              <FormControl fullWidth required sx={{ minWidth: "100%" }}>
-                <InputLabel id="demo-simple-select-required-label">
-                  Select
-                </InputLabel>
-                <Select
-                  sx={{ width: "85%" }}
-                  labelId="demo-simple-select-required-label"
-                  id="demo-simple-select-required"
-                  value={USERData.domain}
-                  label="Age *"
-                  onChange={handleDomainChange}
-                >
-                  <MenuItem value="">
-                    <em>None</em>
-                  </MenuItem>
-                  <MenuItem value={10}>FrontEnd</MenuItem>
-                  <MenuItem value={20}>BackEnd</MenuItem>
-                  <MenuItem value={30}>Full stack</MenuItem>
-                </Select>
-                <FormHelperText>Required</FormHelperText>
-              </FormControl>
-            </Grid> */}
           </Grid>
-          </div>
+      </div>
+    
   );
 }
 
