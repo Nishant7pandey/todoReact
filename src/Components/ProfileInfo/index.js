@@ -10,7 +10,7 @@ import{useNavigate} from "react-router-dom";
 const ProfileInfo = () => {
   const loginUser = JSON.parse(localStorage.getItem("user"))
   const [editState,setEditState] =useState(false);
-  const[data,setData] = useState([]);
+  // const[data,setData] = useState([]);
   
   const [candidateData,setCandidateData] =useState({
     name:'',
