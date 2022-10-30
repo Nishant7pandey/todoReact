@@ -104,7 +104,7 @@ const ProfileInfo = () => {
                 email<span style={{ color: "red" }}>*</span>
               </label>
               <TextField
-                disabled={!editState}
+                disabled
                 required
                 type="email"
                 value={candidateData.email}
